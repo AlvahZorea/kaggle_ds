@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>דוח ויזואליזציה - ניתוח נתוני גנים</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.2em;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,210,255,0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #00d2ff;
+        }
+        
+        .stat-label {
+            color: #a0a0a0;
+            margin-top: 5px;
+        }
+        
+        .chart-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-title::before {
+            content: '';
+            width: 5px;
+            height: 25px;
+            background: linear-gradient(180deg, #00d2ff, #3a7bd5);
+            border-radius: 3px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        
+        .chart-container-small {
+            height: 300px;
+        }
+        
+        .two-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+        
+        .insights-section {
+            background: linear-gradient(135deg, rgba(0,210,255,0.1), rgba(58,123,213,0.1));
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0,210,255,0.3);
+        }
+        
+        .insight-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-right: 4px solid #00d2ff;
+        }
+        
+        .insight-card.warning {
+            border-right-color: #ffcc00;
+        }
+        
+        .insight-card.danger {
+            border-right-color: #ff4757;
+        }
+        
+        .insight-card.success {
+            border-right-color: #2ed573;
+        }
+        
+        .insight-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .problems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .problem-card {
+            background: rgba(255,71,87,0.1);
+            border: 1px solid rgba(255,71,87,0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .problem-card.moderate {
+            background: rgba(255,204,0,0.1);
+            border-color: rgba(255,204,0,0.3);
+        }
+        
+        .problem-card h4 {
+            color: #ff4757;
+            margin-bottom: 10px;
+        }
+        
+        .problem-card.moderate h4 {
+            color: #ffcc00;
+        }
+        
+        .solution {
+            background: rgba(46,213,115,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        th {
+            background: rgba(0,210,255,0.2);
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .badge-danger { background: rgba(255,71,87,0.3); color: #ff4757; }
+        .badge-warning { background: rgba(255,204,0,0.3); color: #ffcc00; }
+        .badge-success { background: rgba(46,213,115,0.3); color: #2ed573; }
+        .badge-info { background: rgba(0,210,255,0.3); color: #00d2ff; }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .two-charts {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧬 דוח ויזואליזציה - ניתוח נתוני גנים</h1>
+            <p class="subtitle">ניתוח מקיף של מאגר נתונים לסיווג סוגי גנים</p>
+        </header>
+        
+        <!-- Summary Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">35,496</div>
+                <div class="stat-label">סה"כ דוגמאות</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">10</div>
+                <div class="stat-label">קטגוריות גנים</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">360</div>
+                <div class="stat-label">אורך רצף ממוצע</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3,407:1</div>
+                <div class="stat-label">יחס חוסר איזון</div>
+            </div>
+        </div>
+        
+        <!-- Dataset Split -->
+        <div class="chart-section">
+            <h2 class="chart-title">חלוקת הנתונים</h2>
+            <div class="two-charts">
+                <div>
+                    <div class="chart-container chart-container-small">
+                        <canvas id="splitChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <table>
+                        <tr>
+                            <th>קובץ</th>
+                            <th>מספר שורות</th>
+                            <th>אחוז</th>
+                            <th>שימוש</th>
+                        </tr>
+                        <tr>
+                            <td>train.csv</td>
+                            <td>22,593</td>
+                            <td>63.6%</td>
+                            <td><span class="badge badge-info">אימון</span></td>
+                        </tr>
+                        <tr>
+                            <td>test.csv</td>
+                            <td>8,326</td>
+                            <td>23.5%</td>
+                            <td><span class="badge badge-warning">בדיקה</span></td>
+                        </tr>
+                        <tr>
+                            <td>validation.csv</td>
+                            <td>4,577</td>
+                            <td>12.9%</td>
+                            <td><span class="badge badge-success">ולידציה</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gene Type Distribution -->
+        <div class="chart-section">
+            <h2 class="chart-title">התפלגות סוגי הגנים (GeneType)</h2>
+            <div class="two-charts">
+                <div class="chart-container">
+                    <canvas id="geneTypeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="geneTypePieChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Class Imbalance -->
+        <div class="chart-section">
+            <h2 class="chart-title">חוסר איזון בין הקטגוריות</h2>
+            <div class="chart-container">
+                <canvas id="imbalanceChart"></canvas>
+            </div>
+            <div class="insight-card danger" style="margin-top: 20px;">
+                <div class="insight-title">⚠️ בעיה קריטית: חוסר איזון קיצוני</div>
+                <p>הקטגוריה <strong>PSEUDO</strong> מכילה 10,220 דוגמאות, בעוד <strong>scRNA</strong> מכילה רק 3 דוגמאות!</p>
+                <p>יחס של <strong>3,407:1</strong> - יש לטפל בבעיה זו לפני האימון.</p>
+            </div>
+        </div>
+        
+        <!-- Sequence Length -->
+        <div class="chart-section">
+            <h2 class="chart-title">אורך רצפי נוקלאוטידים לפי סוג גן</h2>
+            <div class="chart-container">
+                <canvas id="seqLengthChart"></canvas>
+            </div>
+            <div class="insight-card success" style="margin-top: 20px;">
+                <div class="insight-title">💡 תובנה מעניינת</div>
+                <p><strong>snoRNA</strong> - הרצפים הקצרים ביותר (ממוצע: 111 bp)</p>
+                <p><strong>PROTEIN_CODING</strong> - הרצפים הארוכים ביותר (ממוצע: 742 bp)</p>
+                <p>אורך הרצף יכול לשמש כתכונה לניבוי!</p>
+            </div>
+        </div>
+        
+        <!-- Sequence Length Distribution -->
+        <div class="chart-section">
+            <h2 class="chart-title">התפלגות אורכי הרצפים</h2>
+            <div class="chart-container">
+                <canvas id="seqDistChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Data Leakage -->
+        <div class="chart-section">
+            <h2 class="chart-title">דליפת נתונים בין ה-Splits</h2>
+            <div class="two-charts">
+                <div class="chart-container chart-container-small">
+                    <canvas id="leakageChart"></canvas>
+                </div>
+                <div>
+                    <div class="insight-card danger">
+                        <div class="insight-title">🚨 דליפת נתונים חמורה!</div>
+                        <table>
+                            <tr>
+                                <th>חפיפה</th>
+                                <th>רצפים משותפים</th>
+                            </tr>
+                            <tr>
+                                <td>Train ↔ Validation</td>
+                                <td><span class="badge badge-danger">4,769</span></td>
+                            </tr>
+                            <tr>
+                                <td>Train ↔ Test</td>
+                                <td><span class="badge badge-danger">7,738</span></td>
+                            </tr>
+                            <tr>
+                                <td>Validation ↔ Test</td>
+                                <td><span class="badge badge-warning">903</span></td>
+                            </tr>
+                        </table>
+                        <div class="solution">
+                            <strong>פתרון:</strong> יצירת splits חדשים ללא חפיפה, או הסרת רצפים כפולים
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Symbol Patterns -->
+        <div class="chart-section">
+            <h2 class="chart-title">תבניות בשמות הסמלים (Symbol) - דליפת מידע</h2>
+            <div class="chart-container">
+                <canvas id="symbolPatternChart"></canvas>
+            </div>
+            <div class="insight-card warning" style="margin-top: 20px;">
+                <div class="insight-title">⚠️ דליפת מידע דרך Symbol</div>
+                <ul style="margin-top: 10px; padding-right: 20px;">
+                    <li><strong>83.4%</strong> מה-PSEUDO מסתיימים ב-"P"</li>
+                    <li><strong>99.6%</strong> מה-BIOLOGICAL_REGION מתחילים ב-"LOC"</li>
+                    <li><strong>70.6%</strong> מה-ncRNA מתחילים ב-"MIR"</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Problems Summary -->
+        <div class="insights-section">
+            <h2 class="chart-title">סיכום בעיות ופתרונות</h2>
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <h4>🔴 חוסר איזון קיצוני</h4>
+                    <p>scRNA: 3 דוגמאות<br>snRNA: 145 דוגמאות</p>
+                    <div class="solution">
+                        ✅ שימוש ב-class weights<br>
+                        ✅ SMOTE / Oversampling<br>
+                        ✅ איחוד קטגוריות נדירות
+                    </div>
+                </div>
+                <div class="problem-card">
+                    <h4>🔴 דליפת נתונים בין Splits</h4>
+                    <p>7,738 רצפים משותפים בין Train ו-Test</p>
+                    <div class="solution">
+                        ✅ יצירת splits חדשים<br>
+                        ✅ הסרת רצפים כפולים
+                    </div>
+                </div>
+                <div class="problem-card moderate">
+                    <h4>🟡 דליפת מידע בעמודות</h4>
+                    <p>Symbol ו-Description חושפים את התשובה</p>
+                    <div class="solution">
+                        ✅ הסרת עמודות אלו<br>
+                        ✅ שימוש רק ב-NucleotideSequence
+                    </div>
+                </div>
+                <div class="problem-card moderate">
+                    <h4>🟡 רצפים כפולים</h4>
+                    <p>709 רצפים כפולים בנתוני האימון</p>
+                    <div class="solution">
+                        ✅ הסרת כפילויות<br>
+                        ✅ או שקלול מתאים
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recommendations -->
+        <div class="chart-section">
+            <h2 class="chart-title">המלצות לבניית מודל</h2>
+            <div class="two-charts">
+                <div>
+                    <h3 style="color: #00d2ff; margin-bottom: 15px;">📊 מדדי הערכה מומלצים</h3>
+                    <ul style="padding-right: 20px; line-height: 2;">
+                        <li><strong>F1-Score (Macro)</strong> - מתחשב בכל הקטגוריות</li>
+                        <li><strong>Precision / Recall per class</strong></li>
+                        <li><strong>Confusion Matrix</strong></li>
+                        <li>❌ <span style="color: #ff4757;">לא Accuracy!</span> (בגלל חוסר האיזון)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #00d2ff; margin-bottom: 15px;">🤖 מודלים מומלצים</h3>
+                    <ul style="padding-right: 20px; line-height: 2;">
+                        <li><strong>CNN 1D</strong> - לרצפים</li>
+                        <li><strong>LSTM / GRU</strong> - לרצפים ארוכים</li>
+                        <li><strong>Transformer</strong> - BERT-style</li>
+                        <li><strong>Ensemble</strong> - שילוב מודלים</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>דוח זה נוצר אוטומטית | נתונים מ-Kaggle Dataset</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Color palette
+        const colors = {
+            primary: '#00d2ff',
+            secondary: '#3a7bd5',
+            danger: '#ff4757',
+            warning: '#ffcc00',
+            success: '#2ed573',
+            purple: '#a55eea',
+            orange: '#ff9f43',
+            pink: '#ff6b81',
+            teal: '#1abc9c',
+            gray: '#636e72'
+        };
+        
+        const geneTypeColors = [
+            colors.primary, colors.secondary, colors.success, colors.warning,
+            colors.danger, colors.purple, colors.orange, colors.pink, colors.teal, colors.gray
+        ];
+        
+        // Dataset Split Chart
+        new Chart(document.getElementById('splitChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Train (22,593)', 'Test (8,326)', 'Validation (4,577)'],
+                datasets: [{
+                    data: [22593, 8326, 4577],
+                    backgroundColor: [colors.primary, colors.warning, colors.success],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#e8e8e8', padding: 20 }
+                    }
+                }
+            }
+        });
+        
+        // Gene Type Bar Chart
+        new Chart(document.getElementById('geneTypeChart'), {
+            type: 'bar',
+            data: {
+                labels: ['PSEUDO', 'BIOLOGICAL_REGION', 'ncRNA', 'snoRNA', 'PROTEIN_CODING', 'tRNA', 'OTHER', 'rRNA', 'snRNA', 'scRNA'],
+                datasets: [{
+                    label: 'מספר דוגמאות',
+                    data: [10220, 6925, 2497, 1148, 524, 488, 366, 277, 145, 3],
+                    backgroundColor: geneTypeColors,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0', maxRotation: 45 }
+                    }
+                }
+            }
+        });
+        
+        // Gene Type Pie Chart
+        new Chart(document.getElementById('geneTypePieChart'), {
+            type: 'pie',
+            data: {
+                labels: ['PSEUDO', 'BIOLOGICAL_REGION', 'ncRNA', 'snoRNA', 'PROTEIN_CODING', 'tRNA', 'OTHER', 'rRNA', 'snRNA', 'scRNA'],
+                datasets: [{
+                    data: [45.24, 30.65, 11.05, 5.08, 2.32, 2.16, 1.62, 1.23, 0.64, 0.01],
+                    backgroundColor: geneTypeColors,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#e8e8e8', padding: 10, font: { size: 11 } }
+                    }
+                }
+            }
+        });
+        
+        // Imbalance Chart (Log Scale)
+        new Chart(document.getElementById('imbalanceChart'), {
+            type: 'bar',
+            data: {
+                labels: ['PSEUDO', 'BIOLOGICAL_REGION', 'ncRNA', 'snoRNA', 'PROTEIN_CODING', 'tRNA', 'OTHER', 'rRNA', 'snRNA', 'scRNA'],
+                datasets: [{
+                    label: 'מספר דוגמאות (סקאלה לוגריתמית)',
+                    data: [10220, 6925, 2497, 1148, 524, 488, 366, 277, 145, 3],
+                    backgroundColor: geneTypeColors.map((c, i) => i >= 8 ? colors.danger : (i >= 4 ? colors.warning : colors.success)),
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        type: 'logarithmic',
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
+        
+        // Sequence Length by Gene Type
+        new Chart(document.getElementById('seqLengthChart'), {
+            type: 'bar',
+            data: {
+                labels: ['snoRNA', 'ncRNA', 'BIOLOGICAL_REGION', 'PSEUDO', 'PROTEIN_CODING'],
+                datasets: [
+                    {
+                        label: 'אורך ממוצע',
+                        data: [111, 266, 328, 436, 742],
+                        backgroundColor: colors.primary,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'מינימום',
+                        data: [33, 41, 2, 18, 165],
+                        backgroundColor: colors.warning,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'מקסימום',
+                        data: [250, 1000, 1000, 1000, 1000],
+                        backgroundColor: colors.danger,
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#e8e8e8' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' },
+                        title: { display: true, text: 'אורך (bp)', color: '#a0a0a0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
+        
+        // Sequence Length Distribution
+        new Chart(document.getElementById('seqDistChart'), {
+            type: 'bar',
+            data: {
+                labels: ['<20', '20-50', '50-100', '100-200', '200-400', '400-600', '600-800', '800-900', '900-1000'],
+                datasets: [{
+                    label: 'מספר רצפים',
+                    data: [21, 77, 450, 3200, 8500, 4200, 2800, 1500, 1845],
+                    backgroundColor: colors.secondary,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0' },
+                        title: { display: true, text: 'אורך רצף (bp)', color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
+        
+        // Data Leakage Chart
+        new Chart(document.getElementById('leakageChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Train ↔ Val', 'Train ↔ Test', 'Val ↔ Test'],
+                datasets: [{
+                    label: 'רצפים משותפים',
+                    data: [4769, 7738, 903],
+                    backgroundColor: [colors.warning, colors.danger, colors.orange],
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
+        
+        // Symbol Pattern Chart
+        new Chart(document.getElementById('symbolPatternChart'), {
+            type: 'bar',
+            data: {
+                labels: ['PSEUDO', 'BIOLOGICAL_REGION', 'ncRNA', 'snoRNA', 'PROTEIN_CODING'],
+                datasets: [
+                    {
+                        label: 'מסתיים ב-P (%)',
+                        data: [83.4, 0, 0.08, 0.09, 3.8],
+                        backgroundColor: colors.danger,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'מתחיל ב-LOC (%)',
+                        data: [12.6, 99.6, 20.9, 55, 18.7],
+                        backgroundColor: colors.warning,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'מתחיל ב-MIR (%)',
+                        data: [0, 0, 70.6, 0, 0],
+                        backgroundColor: colors.purple,
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#e8e8e8' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#a0a0a0' },
+                        title: { display: true, text: 'אחוז (%)', color: '#a0a0a0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0a0a0' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
